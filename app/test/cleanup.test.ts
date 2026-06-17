@@ -1,0 +1,101 @@
+// Tests for the first-run cleanup module.
+
+import {
+  looksLikeInstallArtifact,
+  isCleanupDone,
+  markCleanupDone,
+  runCleanupScan,
+} from '../src/cleanup';
+import * as SecureStore from 'expo-secure-store';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+
+describe('looksLikeInstallArtifact', () => {
+  it.each([
+    'calculadora-fria.zip',
+    'calculadora-fria.apk',
+    'Calculadora-Fria.apk',
+    'coldapp.apk',
+    'coldapp-1.0.zip',
+    'FRIA.apk',
+  ])('matches %s', (name) => {
+    expect(looksLikeInstallArtifact(name)).toBe(true);
+  });
+
+  it.each([
+    'vacation.jpg',
+    'receipt.pdf',
+    'screenshot.png',
+    '',
+    undefined,
+  ])('does NOT match %s', (name) => {
+    expect(looksLikeInstallArtifact(name)).toBe(false);
+  });
+});
+
+describe('isCleanupDone / markCleanupDone', () => {
+  beforeEach(() => {
+    (SecureStore.getItemAsync as jest.Mock).mockReset();
+    (SecureStore.setItemAsync as jest.Mock).mockReset();
+  });
+
+  it('returns false when SecureStore has no value', async () => {
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+    expect(await isCleanupDone()).toBe(false);
+  });
+
+  it('returns true after markCleanupDone', async () => {
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue('1');
+    (SecureStore.setItemAsync as jest.Mock).mockResolvedValue(undefined);
+    await markCleanupDone();
+    expect(SecureStore.setItemAsync).toHaveBeenCalled();
+    expect(await isCleanupDone()).toBe(true);
+  });
+});
+
+describe('runCleanupScan', () => {
+  beforeEach(() => {
+    (DocumentPicker.getDocumentAsync as jest.Mock).mockReset();
+    (FileSystem.deleteAsync as jest.Mock).mockReset();
+  });
+
+  it('reports cancelled when the picker is dismissed', async () => {
+    (DocumentPicker.getDocumentAsync as jest.Mock).mockResolvedValue({
+      canceled: true,
+      assets: null,
+    });
+    const result = await runCleanupScan();
+    expect(result.skipped).toBe('cancelled');
+    expect(result.found).toEqual([]);
+  });
+
+  it('finds and tries to delete matching files', async () => {
+    (DocumentPicker.getDocumentAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [
+        { name: 'calculadora-fria.zip', uri: 'content://1' },
+        { name: 'vacation.jpg', uri: 'content://2' },
+        { name: 'coldapp.apk', uri: 'content://3' },
+      ],
+    });
+    (FileSystem.deleteAsync as jest.Mock).mockResolvedValue(undefined);
+    const result = await runCleanupScan();
+    expect(result.found).toEqual(['calculadora-fria.zip', 'coldapp.apk']);
+    expect(result.deleted).toEqual(['calculadora-fria.zip', 'coldapp.apk']);
+    // One delete attempt per matching file (the picker URI).
+    expect((FileSystem.deleteAsync as jest.Mock).mock.calls.length).toBe(2);
+  });
+
+  it('survives delete failures (records found, no deleted)', async () => {
+    (DocumentPicker.getDocumentAsync as jest.Mock).mockResolvedValue({
+      canceled: false,
+      assets: [
+        { name: 'calculadora-fria.zip', uri: 'content://1' },
+      ],
+    });
+    (FileSystem.deleteAsync as jest.Mock).mockRejectedValue(new Error('read-only'));
+    const result = await runCleanupScan();
+    expect(result.found).toEqual(['calculadora-fria.zip']);
+    expect(result.deleted).toEqual([]);
+  });
+});

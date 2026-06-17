@@ -1,0 +1,17 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-native",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["jest", "node"]
+  },
+  "include": [
+    "App.tsx",
+    "src/**/*",
+    "test/**/*"
+  ],
+  "exclude": ["node_modules", "babel.config.js", "jest.setup.js", "jest.config.js"]
+}

@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "FRÍA",
+    "slug": "fria-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0b"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.fria.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "FRÍA uses your location to show your position on the group map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "FRÍA uses your location to share it with your group."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0b"
+      },
+      "package": "com.fria.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "FRÍA uses your location to share with your group."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#3b82f6"
+        }
+      ]
+    ],
+    "scheme": "fria"
+  }
+}

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+web-build/
+.expo/
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# EAS
+.eas/
+
+# Trash / scratch
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
