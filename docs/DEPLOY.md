@@ -109,9 +109,12 @@ eas build:configure                    # crea eas.json (si no existe)
 ### Setear variables de EAS
 
 ```bash
-eas env:set EXPO_PUBLIC_SERVER_URL "https://<TU-URL>.up.railway.app" --environment preview
+eas env:set EXPO_PUBLIC_SERVER_URL "https://web-production-c42a.up.railway.app" --environment preview
 eas env:set EXPO_PUBLIC_EAS_PROJECT_ID "<project-id-que-te-da-eas>" --environment preview
 ```
+
+> Server live URL (ejemplo real usado en deploy): `https://web-production-c42a.up.railway.app`
+> Sustituir por tu propio subdominio cuando regeneres el servicio.
 
 (`eas build:configure` te da el `projectId`; también aparece en `eas.json`
 después de la primera build.)
