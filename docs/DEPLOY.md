@@ -68,11 +68,14 @@ Copiá y pegá exactamente esto, reemplazando solo lo marcado:
 ### Postgres plugin
 
 1. En el mismo proyecto de Railway, **+ New** → **Database** → **PostgreSQL**.
-2. Una vez aprovisionado, abrí el plugin → **Data** → **Query** y pegá
-   el contenido completo de `db/migration.sql`. Ejecutá.
-3. Eso crea las tablas, el enum `alert_type`, el trigger de cap 200, la
+2. `npm start` aplica automáticamente la migración idempotente empaquetada
+   en `server/migrations/001-initial.sql` antes de iniciar el servicio.
+   Si falla, Railway no publica una instancia con esquema incompleto.
+3. La migración crea las tablas, el enum `alert_type`, el trigger de cap 200, la
    función `purge_inactive_rooms`, la vista `room_status`, e inserta
    la fila semilla `rooms.id = 'fria-001'`.
+4. `db/migration.sql` queda disponible para recuperación manual mediante
+   Query Runner.
 
 ### Health check
 
@@ -177,7 +180,7 @@ borrar manualmente. Después de hacerlo, el alert **nunca más vuelve a salir**
 |---------|----------------|-----|
 | `npm install` falla en Railway | versión de Node | Railway lee `engines.node >= 18` del `server/package.json`; ya está |
 | `DATABASE_URL not set` en logs | falta el plugin Postgres o la variable | revisar Variables del servicio en Railway |
-| `permission denied` al crear la sala | falta correr `db/migration.sql` | ir al Query del plugin Postgres y pegar el SQL |
+| `[migrate] fatal: permission denied` | el rol no puede crear objetos | corregir permisos o aplicar `db/migration.sql` con un rol administrador |
 | `EAS build` falla con "no credentials" | falta configurar la keystore | `eas credentials` o dejar que EAS la genere automática |
 | Push no llega a un dispositivo | token de Expo no registrado | verificar permisos de notificación en el dispositivo; `eas env:list` para confirmar `EXPO_PUBLIC_EAS_PROJECT_ID` |
 | `disconnected` constante en el mapa | el server no acepta CORS desde el cliente Expo | revisar `CLIENT_ORIGIN` en Railway, debería ser `*` durante dev |
@@ -187,8 +190,8 @@ borrar manualmente. Después de hacerlo, el alert **nunca más vuelve a salir**
 ## Resumen ejecutivo (lo único que tenés que recordar)
 
 1. **Pegame el PAT de ARAP666** → yo pusheo el repo.
-2. En Railway: Root Dir = `server`, env vars como arriba, plugin Postgres,
-   correr `db/migration.sql`.
+2. En Railway: Root Dir = `server`, env vars como arriba y plugin Postgres.
+   `npm start` aplica la migración automáticamente.
 3. En EAS: `eas login` (con ARAP666), `eas build:configure`,
    `eas env:set EXPO_PUBLIC_SERVER_URL=...`, `eas build --platform android --profile preview`.
 4. Compartir el APK con tus amigos. Deciles que activen orígenes
