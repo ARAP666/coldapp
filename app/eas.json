@@ -9,7 +9,8 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "http://localhost:3000"
+        "EXPO_PUBLIC_SERVER_URL": "https://web-production-c42a.up.railway.app",
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
       }
     },
     "preview": {
@@ -19,7 +20,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://fria-server-preview.up.railway.app"
+        "EXPO_PUBLIC_SERVER_URL": "https://web-production-c42a.up.railway.app",
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
       }
     },
     "production": {
@@ -28,7 +30,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://fria-server-production.up.railway.app"
+        "EXPO_PUBLIC_SERVER_URL": "https://web-production-c42a.up.railway.app",
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
       }
     }
   },

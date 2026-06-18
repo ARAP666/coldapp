@@ -9,6 +9,7 @@ import { JoinScreen } from './src/screens/JoinScreen';
 import { useSocket } from './src/hooks/useSocket';
 import { configureForegroundPush } from './src/push';
 import { isCleanupDone, showCleanupHint } from './src/cleanup';
+import { ErrorBoundary } from './src/ErrorBoundary';
 
 const ROOM_ID = 'fria-001';
 
@@ -20,7 +21,7 @@ export default function App() {
 
   // Mount-time setup.
   useEffect(() => {
-    configureForegroundPush();
+    void configureForegroundPush();
     hideSystemBars();
   }, []);
 
@@ -31,6 +32,7 @@ export default function App() {
 
   const {
     connected,
+    connectionError,
     codename,
     members,
     messages,
@@ -41,6 +43,7 @@ export default function App() {
     sendLocation,
     clearMessages,
     leaveRoom,
+    retryConnection,
   } = useSocket({ roomId: ROOM_ID, enabled: socketEnabled, onIncomingMessage: handleIncomingMessage });
 
   const handleUnlock = useCallback(() => {
@@ -88,6 +91,7 @@ export default function App() {
   }, [kickedReason]);
 
   return (
+    <ErrorBoundary>
     <SafeAreaProvider>
       <StatusBar style="light" backgroundColor="#0a0a0b" translucent={false} />
 
@@ -99,6 +103,8 @@ export default function App() {
         <JoinScreen
           codename={codename}
           connected={connected}
+          connectionError={connectionError}
+          onRetry={retryConnection}
           onJoin={handleJoin}
           onAbort={handleExit}
         />
@@ -120,6 +126,7 @@ export default function App() {
         />
       )}
     </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -128,10 +135,9 @@ export default function App() {
 function hideSystemBars() {
   if (Platform.OS !== 'android') return;
   try {
-    // NavigationBar.setHidden is the modern synchronous API.
-    (NavigationBar as unknown as { setHidden: (v: boolean) => void }).setHidden(
-      true
-    );
+    // expo-navigation-bar v1.x API: setVisibilityAsync + setBehaviorAsync.
+    // v2.x added setHidden but is SDK 52+.
+    NavigationBar.setVisibilityAsync('hidden').catch(() => {});
   } catch {
     // ignore
   }

@@ -2,7 +2,7 @@
 // for the ABORTAR alert.
 
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { act, render, fireEvent } from '@testing-library/react-native';
 import { QuickButton } from '../src/components/QuickButton';
 import type { QuickResponse } from '../src/types';
 
@@ -51,7 +51,9 @@ describe('QuickButton', () => {
     fireEvent.press(getByText(/ABORTAR/i));
     fireEvent.press(getByText(/ABORTAR/i));
     // Now let the 3000ms timeout elapse.
-    jest.advanceTimersByTime(3500);
+    act(() => {
+      jest.advanceTimersByTime(3500);
+    });
     // Two more presses should not trigger; we need three again.
     fireEvent.press(getByText(/ABORTAR/i));
     expect(onSend).not.toHaveBeenCalled();

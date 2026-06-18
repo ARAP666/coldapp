@@ -15,6 +15,7 @@ interface UseSocketOptions {
 
 interface UseSocketReturn {
   connected: boolean;
+  connectionError: string | null;
   codename: string | null;
   members: Member[];
   messages: Message[];
@@ -25,6 +26,7 @@ interface UseSocketReturn {
   sendLocation: (lat: number, lng: number) => void;
   clearMessages: () => void;
   leaveRoom: () => void;
+  retryConnection: () => void;
 }
 
 // Lightweight haptic + vibration burst used when a message arrives while
@@ -51,6 +53,7 @@ function notifyIncoming() {
 export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptions): UseSocketReturn {
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [codename, setCodename] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -68,7 +71,8 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
     if (!enabled || !roomId) return;
 
     const socket = io(SERVER_URL, {
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'],
+      timeout: 10000,
       reconnectionAttempts: 5,
       reconnectionDelay: 1500,
     });
@@ -77,6 +81,7 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
 
     socket.on('connect', async () => {
       setConnected(true);
+      setConnectionError(null);
       let pushToken: string | null = null;
       try {
         pushToken = await getExpoPushTokenAsync();
@@ -88,6 +93,11 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
 
     socket.on('disconnect', () => {
       setConnected(false);
+    });
+
+    socket.on('connect_error', (error) => {
+      setConnected(false);
+      setConnectionError(error.message || 'No se pudo conectar con el servidor');
     });
 
     socket.on('joined', (payload: { alias: string; roomId: string }) => {
@@ -124,6 +134,7 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
       socket.disconnect();
       socketRef.current = null;
       setConnected(false);
+      setConnectionError(null);
       setCodename(null);
       setKickedReason(null);
     };
@@ -155,8 +166,14 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
     socketRef.current?.emit('leave_room');
   }, []);
 
+  const retryConnection = useCallback(() => {
+    setConnectionError(null);
+    socketRef.current?.connect();
+  }, []);
+
   return {
     connected,
+    connectionError,
     codename,
     members,
     messages,
@@ -167,5 +184,6 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
     sendLocation,
     clearMessages,
     leaveRoom,
+    retryConnection,
   };
 }

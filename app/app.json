@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FRÍA",
+    "name": "Calculadora",
     "slug": "fria-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,20 +9,20 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0a0a0b"
+      "backgroundColor": "#08090b"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.fria.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "FRÍA uses your location to show your position on the group map.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "FRÍA uses your location to share it with your group."
+        "NSLocationWhenInUseUsageDescription": "Your location is used to show your position on the group map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Your location is shared with your group."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0a0a0b"
+        "backgroundColor": "#08090b"
       },
       "package": "com.fria.app",
       "permissions": [
@@ -38,7 +38,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "FRÍA uses your location to share with your group."
+          "locationAlwaysAndWhenInUsePermission": "Your location is shared with your group."
         }
       ],
       [
@@ -47,8 +47,35 @@
           "icon": "./assets/icon.png",
           "color": "#3b82f6"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdk": 36,
+            "targetSdk": 36,
+            "minSdk": 24,
+            "extraGradleProperties": [
+              {
+                "key": "kotlin.jvm.target.validation.mode",
+                "value": "IGNORE"
+              }
+            ]
+          }
+        }
       ]
     ],
-    "scheme": "fria"
+    "scheme": "fria",
+    "extra": {
+      "eas": {
+        "projectId": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
+    }
   }
 }

@@ -9,15 +9,36 @@
 //   - All chat content stays in the app; the system tray only ever sees
 //     the cover-story text.
 
-import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const PUSH_TOKEN_KEY = 'fria.pushToken';
 
+async function loadNotifications() {
+  // Since SDK 53, Expo Go no longer contains Android remote-push support.
+  // Avoid importing expo-notifications there because the module reports a
+  // runtime error before React (and therefore ErrorBoundary) can mount.
+  if (
+    Platform.OS === 'web' ||
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient
+  ) {
+    return null;
+  }
+
+  try {
+    return await import('expo-notifications');
+  } catch {
+    return null;
+  }
+}
+
 export async function getExpoPushTokenAsync() {
   if (!Device.isDevice) return null;
+
+  const Notifications = await loadNotifications();
+  if (!Notifications) return null;
 
   let status = 'unknown';
   try {
@@ -57,7 +78,10 @@ export async function getStoredPushTokenAsync() {
   }
 }
 
-export function configureForegroundPush() {
+export async function configureForegroundPush() {
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
+
   try {
     // Foreground: do NOT show a banner. The user is already looking at
     // the chat, so a banner would just be noise (and would leak the
@@ -76,5 +100,3 @@ export function configureForegroundPush() {
     // Notifications not available (e.g. on web). Swallow.
   }
 }
-
-void Platform;
