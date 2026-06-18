@@ -44,7 +44,8 @@ the required tables.
 ## QA Evidence
 
 - `cd server && npm run type-check` — passed.
-- `cd server && npm test` — passed: 8 files, 64 tests.
+- `cd server && npm test` — passed: deployment configuration is covered so
+  Railway, Nixpacks and Procfile cannot bypass `npm start`.
 - `cd server && npm run migrate` without `DATABASE_URL` — skipped cleanly,
   preserving the in-memory development path.
 

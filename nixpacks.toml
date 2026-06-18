@@ -17,4 +17,4 @@ cmds = ["npm ci --omit=dev || npm install --omit=dev"]
 cmds = ["echo 'no build step for the server'"]
 
 [start]
-cmd = "node index.js"
+cmd = "npm start"
