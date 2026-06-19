@@ -41,8 +41,7 @@ export default function App() {
     sendMessage,
     sendQuickAlert,
     sendLocation,
-    clearMessages,
-    leaveRoom,
+    purgeRoom,
     retryConnection,
   } = useSocket({ roomId: ROOM_ID, enabled: socketEnabled, onIncomingMessage: handleIncomingMessage });
 
@@ -61,10 +60,8 @@ export default function App() {
   }, []);
 
   const handleDefinitiveExit = useCallback(() => {
-    leaveRoom();
-    setSocketEnabled(false);
-    setState('calculator');
-  }, [leaveRoom]);
+    purgeRoom();
+  }, [purgeRoom]);
 
   // Once the server hands us a codename (i.e. we're in the join screen
   // with a real identity), and we haven't yet prompted for install-artifact
@@ -120,7 +117,6 @@ export default function App() {
           sendMessage={sendMessage}
           sendQuickAlert={sendQuickAlert}
           sendLocation={sendLocation}
-          clearMessages={clearMessages}
           onExit={handleExit}
           onDefinitiveExit={handleDefinitiveExit}
         />

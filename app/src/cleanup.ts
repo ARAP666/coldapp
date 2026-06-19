@@ -14,6 +14,7 @@ import { Alert, Platform } from 'react-native';
 
 const CLEANUP_DONE_KEY = 'fria.cleanupDone.v1';
 const TARGET_PATTERNS: RegExp[] = [
+  /^application-.*\.apk$/i,
   /^calculadora-fria/i,
   /^coldapp/i,
   /\.apk$/i,
@@ -96,7 +97,7 @@ export async function runCleanupScan(): Promise<CleanupResult> {
 export function showCleanupHint(): void {
   Alert.alert(
     'Borrá los archivos de instalación',
-    'Para que la app no se delate como instalable manualmente, andá a Descargas y borrá el archivo ZIP y la carpeta extraída de "calculadora-fria" (o "coldapp"). También desactivá "Orígenes desconocidos" si lo activaste para instalar la APK.',
+    'Para que la app no se delate como instalable manualmente, andá a Descargas y borrá el instalador "application-*.apk" y cualquier ZIP o carpeta extraída relacionada. También desactivá "Orígenes desconocidos" si lo activaste para instalar la APK.',
     [
       { text: 'Más tarde', style: 'cancel' },
       { text: 'Buscar y borrar', onPress: () => { runCleanupScan().then(showCleanupResult); } },

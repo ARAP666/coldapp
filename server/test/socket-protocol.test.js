@@ -25,6 +25,9 @@ async function startServer() {
     pingTimeout: 20000,
     pingInterval: 10000,
   });
+  const liveSockets = new Map();
+  const definitiveExits = new Set();
+  const purgingRooms = new Set();
 
   function aliasSet(members) {
     return new Set(members.map((m) => m.alias));
@@ -52,6 +55,7 @@ async function startServer() {
         alias: currentAlias,
         socketId: socket.id,
       });
+      liveSockets.set(socket.id, { socket, roomId: currentRoom });
       const history = await store.getHistory(currentRoom);
 
       socket.emit('joined', { alias: currentAlias, roomId: currentRoom });
@@ -64,7 +68,7 @@ async function startServer() {
     });
 
     socket.on('message', async ({ text, type }) => {
-      if (!currentRoom) return;
+      if (!currentRoom || purgingRooms.has(currentRoom)) return;
       const stored = await store.appendMessage(currentRoom, {
         alias: currentAlias,
         socketId: socket.id,
@@ -76,7 +80,7 @@ async function startServer() {
     });
 
     socket.on('location_update', async ({ lat, lng }) => {
-      if (!currentRoom) return;
+      if (!currentRoom || purgingRooms.has(currentRoom)) return;
       const result = await store.updateMemberLocation(currentRoom, socket.id, lat, lng);
       if (!result) return;
       socket.to(currentRoom).emit('peer_location', {
@@ -88,7 +92,7 @@ async function startServer() {
     });
 
     socket.on('quick_alert', async ({ label, icon, alertType }) => {
-      if (!currentRoom) return;
+      if (!currentRoom || purgingRooms.has(currentRoom)) return;
       const stored = await store.appendMessage(currentRoom, {
         alias: currentAlias,
         socketId: socket.id,
@@ -116,12 +120,33 @@ async function startServer() {
       socket.disconnect(true);
     });
 
+    socket.on('purge_room', async () => {
+      if (!currentRoom) return;
+      const roomId = currentRoom;
+      if (purgingRooms.has(roomId)) return;
+      purgingRooms.add(roomId);
+      await store.purgeRoom(roomId);
+      const affected = Array.from(liveSockets.entries()).filter(
+        ([, live]) => live.roomId === roomId
+      );
+      for (const [socketId, live] of affected) {
+        definitiveExits.add(socketId);
+        liveSockets.delete(socketId);
+        live.socket.emit('room_purged');
+      }
+      for (const [, live] of affected) {
+        live.socket.disconnect(true);
+      }
+      purgingRooms.delete(roomId);
+    });
+
     // Soft disconnect: keep the member row but mark is_online=false. The
     // member is still considered "in the chat" until either leave_room,
     // an inactivity expiration, or a room purge.
     socket.on('disconnect', async () => {
+      liveSockets.delete(socket.id);
       if (!currentRoom) return;
-      if (isDefinitiveExit) return;
+      if (isDefinitiveExit || definitiveExits.delete(socket.id)) return;
       const members = await store.markInactive(currentRoom, socket.id);
       io.to(currentRoom).emit('members_update', members);
     });
@@ -344,6 +369,33 @@ describe('socket protocol', () => {
     await new Promise((r) => setTimeout(r, 150));
     // Only one members_update should arrive at a (the leave_room one).
     expect(aUpdates).toBe(1);
+  });
+
+  it('purge_room deletes history and ejects every member', async () => {
+    const a = connect();
+    const b = connect();
+    await Promise.all([waitConnect(a), waitConnect(b)]);
+    await Promise.all([
+      joinRoom(a, 'fria-001', 'A1'),
+      joinRoom(b, 'fria-001', 'B3'),
+    ]);
+    a.emit('message', { text: 'borrar esto', type: 'text' });
+    await new Promise((r) => setTimeout(r, 50));
+
+    const aPurged = nextEvent(a, 'room_purged');
+    const bPurged = nextEvent(b, 'room_purged');
+    a.emit('purge_room');
+    await Promise.all([aPurged, bPurged]);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(a.connected).toBe(false);
+    expect(b.connected).toBe(false);
+    expect(await httpServer.store.getAllMembers('fria-001')).toEqual([]);
+    expect(await httpServer.store.getHistory('fria-001')).toEqual([]);
+
+    const c = connect();
+    await waitConnect(c);
+    expect(await joinRoom(c, 'fria-001', 'C2')).toEqual([]);
   });
 
   it('soft disconnect keeps the member row but removes them from the online roster', async () => {

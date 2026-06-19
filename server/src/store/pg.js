@@ -92,6 +92,14 @@ function createPgStore(pool) {
       return { removed, remaining, roomGced };
     },
 
+    async purgeRoom(roomId) {
+      const { rowCount } = await pool.query(
+        `DELETE FROM rooms WHERE id = $1`,
+        [roomId]
+      );
+      return rowCount > 0;
+    },
+
     async updateMemberLocation(roomId, socketId, lat, lng) {
       const { rows: aliasRows } = await pool.query(
         `SELECT alias FROM members WHERE room_id = $1 AND socket_id = $2`,

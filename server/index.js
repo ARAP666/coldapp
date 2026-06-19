@@ -46,6 +46,8 @@ async function main() {
   // Track live sockets by socketId so the inactivity expirer can force-close
   // them when the user ignores the nudge for PUSH_EXPIRE_MS.
   const liveSockets = new Map(); // socketId -> { socket, roomId, alias }
+  const definitiveExits = new Set();
+  const purgingRooms = new Set();
 
   app.use(cors());
   app.use(express.json());
@@ -107,7 +109,7 @@ async function main() {
     });
 
     socket.on('message', async ({ text, type, color }) => {
-      if (!currentRoom || !currentAlias) return;
+      if (!currentRoom || !currentAlias || purgingRooms.has(currentRoom)) return;
       const stored = await store.appendMessage(currentRoom, {
         alias: currentAlias,
         socketId: socket.id,
@@ -120,7 +122,7 @@ async function main() {
     });
 
     socket.on('location_update', async ({ lat, lng }) => {
-      if (!currentRoom || !currentAlias) return;
+      if (!currentRoom || !currentAlias || purgingRooms.has(currentRoom)) return;
       const result = await store.updateMemberLocation(
         currentRoom,
         socket.id,
@@ -137,7 +139,7 @@ async function main() {
     });
 
     socket.on('quick_alert', async ({ label, icon, alertType, color }) => {
-      if (!currentRoom || !currentAlias) return;
+      if (!currentRoom || !currentAlias || purgingRooms.has(currentRoom)) return;
       const stored = await store.appendMessage(currentRoom, {
         alias: currentAlias,
         socketId: socket.id,
@@ -169,6 +171,34 @@ async function main() {
       socket.disconnect(true);
     });
 
+    socket.on('purge_room', async () => {
+      if (!currentRoom) return;
+      const roomId = currentRoom;
+      if (purgingRooms.has(roomId)) return;
+      purgingRooms.add(roomId);
+      try {
+        await store.purgeRoom(roomId);
+      } catch (err) {
+        purgingRooms.delete(roomId);
+        console.error(`[room:${roomId}] purge failed:`, err.message);
+        return;
+      }
+
+      const affected = Array.from(liveSockets.entries()).filter(
+        ([, live]) => live.roomId === roomId
+      );
+      for (const [socketId, live] of affected) {
+        definitiveExits.add(socketId);
+        liveSockets.delete(socketId);
+        live.socket.emit('room_purged');
+      }
+      for (const [, live] of affected) {
+        live.socket.disconnect(true);
+      }
+      purgingRooms.delete(roomId);
+      console.log(`[room:${roomId}] purged globally (${affected.length} sockets)`);
+    });
+
     // Soft disconnect (network blip, app killed, OS reclaimed memory).
     // The member row STAYS so a late reconnect sees the same codename and
     // the inactivity timer keeps ticking. Only the explicit `leave_room`
@@ -176,7 +206,7 @@ async function main() {
     socket.on('disconnect', async () => {
       liveSockets.delete(socket.id);
       if (!currentRoom) return;
-      if (isDefinitiveExit) return; // leave_room already handled this.
+      if (isDefinitiveExit || definitiveExits.delete(socket.id)) return;
       const members = await store.markInactive(currentRoom, socket.id);
       io.to(currentRoom).emit('members_update', members);
       console.log(

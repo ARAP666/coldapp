@@ -27,7 +27,6 @@ interface Props {
   sendMessage: (text: string, type?: string, color?: string | null) => void;
   sendQuickAlert: (label: string, icon: string, alertType: string, color: string) => void;
   sendLocation: (lat: number, lng: number) => void;
-  clearMessages: () => void;
   onExit: () => void;
   onDefinitiveExit: () => void;
 }
@@ -43,7 +42,6 @@ export function FriaScreen({
   sendMessage,
   sendQuickAlert,
   sendLocation,
-  clearMessages,
   onExit,
   onDefinitiveExit,
 }: Props) {
@@ -90,9 +88,7 @@ export function FriaScreen({
   };
 
   // Triple-tap "🔥 borrar todo · salir".
-  // Sends leave_room to the server (definitive exit: deletes this member's
-  // row), clears local state, then onDefinitiveExit returns to the
-  // calculator. If no members remain in any room, the room itself is GC'd.
+  // The server confirms the global purge to every connected member.
   const [emerLevel, setEmerLevel] = useState(0);
   const emerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -102,7 +98,6 @@ export function FriaScreen({
       const next = Math.min(prev + 1, 3);
       if (emerTimer.current) clearTimeout(emerTimer.current);
       if (next >= 3) {
-        clearMessages();
         onDefinitiveExit();
         return 0;
       }

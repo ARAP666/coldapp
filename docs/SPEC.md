@@ -32,7 +32,7 @@ Explicitly out of scope (current version):
 | Role          | Goal                                  | Permissions                                         |
 |---------------|---------------------------------------|-----------------------------------------------------|
 | Public user   | Use the calculator                    | None. App looks like a calculator.                  |
-| Member        | Send messages, alerts, share location | Join `fria-001`; server assigns a `WORD-NN` codename; can leave definitively with triple-tap. |
+| Member        | Send messages, alerts, share location | Join `fria-001`; server assigns a `WORD-NN` codename; can purge the room with triple-tap. |
 | Server        | Relay messages, persist state, purge  | Background only. Authoritative for codenames, roster, history, and the inactivity push. |
 | Admin (future)| Purge rooms, ban aliases              | Not implemented; reserved for `purge_inactive_rooms`. |
 
@@ -43,8 +43,9 @@ Explicitly out of scope (current version):
 - **Codename** is server-assigned, format `WORD-NN` (e.g. `BRAVO-07`),
   unique within the room while the member is online. Pool size is ~5,760
   combinations, more than enough for a friend group.
-- **Definitive exit** (`leave_room`) deletes the member's row. The codename
-  is freed for the next joiner.
+- **Safe exit** disconnects only that device.
+- **Global purge** (`purge_room`) deletes the room and all related data,
+  then disconnects every member back to the calculator.
 - **Push tokens** are stored per member row. A reinstall overwrites the
   token on next `join_room`.
 
@@ -120,7 +121,9 @@ Invariants:
 | S → C | `peer_location` | `PeerLocation` | One peer's new position |
 | C → S | `quick_alert` | `{ label, icon, alertType, color }` | Append alert + broadcast |
 | S → C | `quick_alert` | `QuickAlert` | Mirror for analytics UI |
-| C → S | `leave_room` | — | Definitive exit: server deletes the member row. |
+| C → S | `leave_room` | — | Definitive exit for one member: server deletes its row. |
+| C → S | `purge_room` | — | Delete the room and all related data for every member. |
+| S → C | `room_purged` | — | Clear local FRÍA data and return to the calculator. |
 | built-in | `disconnect` | — | Soft disconnect; member marked offline. Skipped if `leave_room` already handled it. |
 
 Every event payload is validated server-side. Unrecognized payloads are ignored
@@ -194,9 +197,9 @@ Every screen also defines:
 
 - A room with zero members AND zero messages is deleted by the next
   `purge_inactive_rooms` tick (within 5 min by default).
-- A triple-tap on "🔥 borrar todo · salir" emits `leave_room`, which
-  deletes the member row on the server, so a late joiner cannot see the
-  departed member in the roster.
+- A triple-tap on "🔥 borrar todo · salir" emits `purge_room`, deletes the
+  room and every cascaded record, and immediately returns all connected
+  members to the calculator.
 
 ## Network And Auth Posture
 

@@ -4,6 +4,7 @@ import { Platform, Vibration } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Message, Member, PeerLocation } from '../types';
 import { getExpoPushTokenAsync } from '../push';
+import { clearLocalFriaData } from '../localData';
 
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'https://your-railway-app.railway.app';
 
@@ -24,8 +25,7 @@ interface UseSocketReturn {
   sendMessage: (text: string, type?: string, color?: string | null) => void;
   sendQuickAlert: (label: string, icon: string, alertType: string, color: string) => void;
   sendLocation: (lat: number, lng: number) => void;
-  clearMessages: () => void;
-  leaveRoom: () => void;
+  purgeRoom: () => void;
   retryConnection: () => void;
 }
 
@@ -130,6 +130,15 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
       setKickedReason(payload?.reason ?? 'unknown');
     });
 
+    socket.on('room_purged', () => {
+      setMessages([]);
+      setMembers([]);
+      setPeerLocations(new Map());
+      setCodename(null);
+      setKickedReason('room_purged');
+      void clearLocalFriaData();
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -158,12 +167,8 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
     socketRef.current?.emit('location_update', { lat, lng });
   }, []);
 
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-  }, []);
-
-  const leaveRoom = useCallback(() => {
-    socketRef.current?.emit('leave_room');
+  const purgeRoom = useCallback(() => {
+    socketRef.current?.emit('purge_room');
   }, []);
 
   const retryConnection = useCallback(() => {
@@ -182,8 +187,7 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
     sendMessage,
     sendQuickAlert,
     sendLocation,
-    clearMessages,
-    leaveRoom,
+    purgeRoom,
     retryConnection,
   };
 }

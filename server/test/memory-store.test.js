@@ -274,6 +274,24 @@ describe('memory store', () => {
     });
   });
 
+  describe('purgeRoom', () => {
+    it('deletes every member and message in the room', async () => {
+      await store.addMember('fria-001', { alias: 'A1', socketId: 's1' });
+      await store.addMember('fria-001', { alias: 'B3', socketId: 's2' });
+      await store.appendMessage('fria-001', {
+        alias: 'A1',
+        socketId: 's1',
+        text: 'secreto',
+        type: 'text',
+      });
+
+      expect(await store.purgeRoom('fria-001')).toBe(true);
+      expect(await store.getAllMembers('fria-001')).toEqual([]);
+      expect(await store.getHistory('fria-001')).toEqual([]);
+      expect(await store.purgeRoom('fria-001')).toBe(false);
+    });
+  });
+
   describe('purgeInactiveRooms', () => {
     it('removes rooms whose last_active is older than the cutoff', async () => {
       const store2 = createMemoryStore();

@@ -109,6 +109,10 @@ function createMemoryStore() {
       };
     },
 
+    async purgeRoom(roomId) {
+      return rooms.delete(roomId);
+    },
+
     async updateMemberLocation(roomId, socketId, lat, lng) {
       const room = rooms.get(roomId);
       if (!room) return null;
