@@ -52,20 +52,15 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdk": 36,
-            "targetSdk": 36,
-            "minSdk": 24,
-            "extraGradleProperties": [
-              {
-                "key": "kotlin.jvm.target.validation.mode",
-                "value": "IGNORE"
-              }
-            ]
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
           }
         }
       ]
     ],
     "scheme": "fria",
+    "newArchEnabled": false,
     "extra": {
       "eas": {
         "projectId": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
