@@ -245,11 +245,11 @@ function createMemoryStore() {
 
     async purgeInactiveRooms(olderThanHours) {
       const cutoff = Date.now() - olderThanHours * 3600 * 1000;
-      let removed = 0;
+      const removed = [];
       for (const [roomId, room] of rooms.entries()) {
-        if (room.members.size === 0 && room.lastActive < cutoff) {
+        if (room.lastActive < cutoff) {
           rooms.delete(roomId);
-          removed++;
+          removed.push(roomId);
         }
       }
       return removed;

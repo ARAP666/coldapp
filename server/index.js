@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 
 // Periodic jobs.
 const PURGE_INTERVAL_MS = Number(process.env.PURGE_INTERVAL_MS || 5 * 60 * 1000);
-const PURGE_OLDER_THAN_HOURS = Number(process.env.PURGE_OLDER_THAN_HOURS || 24);
+const PURGE_OLDER_THAN_HOURS = Number(process.env.PURGE_OLDER_THAN_HOURS || 2);
 
 // Inactivity lifecycle:
 //  - After INACTIVITY_MS of silence, send a push to the member.
@@ -159,7 +159,7 @@ async function main() {
     });
 
     // Definitive exit (triple-tap): deletes the member row entirely.
-    socket.on('leave_room', async () => {
+    socket.on('leave_room', async (ack) => {
       if (!currentRoom) return;
       isDefinitiveExit = true;
       const { remaining, roomGced } = await store.leaveRoom(currentRoom, socket.id);
@@ -168,6 +168,7 @@ async function main() {
         io.to(currentRoom).emit('members_update', remaining);
       }
       console.log(`[room:${currentRoom}] ${currentAlias} left definitively (roomGced=${roomGced})`);
+      if (typeof ack === 'function') ack();
       socket.disconnect(true);
     });
 
@@ -219,8 +220,19 @@ async function main() {
 
   const purgeTimer = setInterval(async () => {
     try {
-      const removed = await store.purgeInactiveRooms(PURGE_OLDER_THAN_HOURS);
-      if (removed > 0) console.log(`[purge] removed ${removed} inactive rooms`);
+      const removedRoomIds = await store.purgeInactiveRooms(PURGE_OLDER_THAN_HOURS);
+      for (const roomId of removedRoomIds) {
+        for (const [socketId, live] of liveSockets.entries()) {
+          if (live.roomId !== roomId) continue;
+          definitiveExits.add(socketId);
+          liveSockets.delete(socketId);
+          live.socket.emit('room_purged');
+          live.socket.disconnect(true);
+        }
+      }
+      if (removedRoomIds.length > 0) {
+        console.log(`[purge] removed ${removedRoomIds.length} inactive rooms`);
+      }
     } catch (err) {
       console.error('[purge] error:', err.message);
     }

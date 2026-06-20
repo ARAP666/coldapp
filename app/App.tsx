@@ -41,6 +41,7 @@ export default function App() {
     sendMessage,
     sendQuickAlert,
     sendLocation,
+    leaveRoom,
     purgeRoom,
     retryConnection,
   } = useSocket({ roomId: ROOM_ID, enabled: socketEnabled, onIncomingMessage: handleIncomingMessage });
@@ -55,9 +56,11 @@ export default function App() {
   }, []);
 
   const handleExit = useCallback(() => {
-    setSocketEnabled(false);
-    setState('calculator');
-  }, []);
+    leaveRoom(() => {
+      setSocketEnabled(false);
+      setState('calculator');
+    });
+  }, [leaveRoom]);
 
   const handleDefinitiveExit = useCallback(() => {
     purgeRoom();

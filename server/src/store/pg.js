@@ -258,23 +258,21 @@ function createPgStore(pool) {
 
     async purgeInactiveRooms(olderThanHours) {
       const { rows } = await pool.query(
-        `SELECT purge_inactive_rooms($1) AS removed`,
+        `DELETE FROM rooms
+          WHERE last_active < NOW() - ($1::double precision * INTERVAL '1 hour')
+          RETURNING id`,
         [olderThanHours]
       );
-      return Number(rows[0].removed) || 0;
+      return rows.map((row) => row.id);
     },
 
-    // Drop the room only if it has zero members AND zero messages. Used
-    // by leaveRoom / forceDeleteMember so we don't lose history while
-    // other members are still around.
+    // Dropping the last member deletes the room and all cascaded history.
     async _maybeDropEmptyRoom(roomId) {
       const { rows } = await pool.query(
-        `SELECT (SELECT COUNT(*) FROM messages WHERE room_id = $1) AS msg_count,
-                (SELECT COUNT(*) FROM members  WHERE room_id = $1) AS member_count`,
+        `SELECT COUNT(*) AS member_count FROM members WHERE room_id = $1`,
         [roomId]
       );
-      const { msg_count, member_count } = rows[0];
-      if (Number(member_count) === 0 && Number(msg_count) === 0) {
+      if (Number(rows[0].member_count) === 0) {
         await pool.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
         return true;
       }

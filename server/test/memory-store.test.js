@@ -1,7 +1,7 @@
 // Tests for the in-memory store. These are the contract that the Postgres
 // implementation must also satisfy.
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMemoryStore, MESSAGE_CAP, HISTORY_LIMIT } from '../src/store/memory.js';
 
 describe('memory store', () => {
@@ -145,10 +145,17 @@ describe('memory store', () => {
   describe('leaveRoom (definitive exit)', () => {
     it('removes the member and reports whether the room was GC\'d', async () => {
       await store.addMember('fria-001', { alias: 'A1', socketId: 's1' });
+      await store.appendMessage('fria-001', {
+        alias: 'A1',
+        socketId: 's1',
+        text: 'secreto',
+        type: 'text',
+      });
       const result = await store.leaveRoom('fria-001', 's1');
       expect(result.removed.alias).toBe('A1');
       expect(result.remaining).toEqual([]);
       expect(result.roomGced).toBe(true);
+      expect(await store.getHistory('fria-001')).toEqual([]);
     });
 
     it('keeps the room alive if other members remain', async () => {
@@ -294,21 +301,25 @@ describe('memory store', () => {
 
   describe('purgeInactiveRooms', () => {
     it('removes rooms whose last_active is older than the cutoff', async () => {
-      const store2 = createMemoryStore();
-      await store2.addMember('fria-001', { alias: 'A1', socketId: 's1' });
-      // Manually age the room.
-      const room = await store2.getMembers('fria-001');
-      expect(room).toHaveLength(1);
-      // Pretend the room has been empty for 25 hours.
-      await store2.removeMember('fria-001', 's1');
-      // Re-add a single member so the room exists with a stale lastActive.
-      // The store drops empty rooms on removeMember, so we just verify
-      // a non-empty room survives a purge of 0 hours.
-      await store2.addMember('fria-002', { alias: 'A1', socketId: 's1' });
-      const removed = await store2.purgeInactiveRooms(0);
-      // fria-002 is brand new; nothing should be purged.
-      expect(removed).toBe(0);
-      await store2.close();
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+        const store2 = createMemoryStore();
+        await store2.addMember('fria-001', { alias: 'A1', socketId: 's1' });
+        await store2.appendMessage('fria-001', {
+          alias: 'A1',
+          socketId: 's1',
+          text: 'secreto',
+          type: 'text',
+        });
+
+        vi.advanceTimersByTime(2 * 60 * 60 * 1000 + 1);
+        expect(await store2.purgeInactiveRooms(2)).toEqual(['fria-001']);
+        expect(await store2.getAllMembers('fria-001')).toEqual([]);
+        expect(await store2.getHistory('fria-001')).toEqual([]);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 });

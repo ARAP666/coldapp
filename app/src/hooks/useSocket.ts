@@ -25,6 +25,7 @@ interface UseSocketReturn {
   sendMessage: (text: string, type?: string, color?: string | null) => void;
   sendQuickAlert: (label: string, icon: string, alertType: string, color: string) => void;
   sendLocation: (lat: number, lng: number) => void;
+  leaveRoom: (onDone: () => void) => void;
   purgeRoom: () => void;
   retryConnection: () => void;
 }
@@ -171,6 +172,15 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
     socketRef.current?.emit('purge_room');
   }, []);
 
+  const leaveRoom = useCallback((onDone: () => void) => {
+    const socket = socketRef.current;
+    if (!socket?.connected) {
+      onDone();
+      return;
+    }
+    socket.timeout(3000).emit('leave_room', () => onDone());
+  }, []);
+
   const retryConnection = useCallback(() => {
     setConnectionError(null);
     socketRef.current?.connect();
@@ -187,6 +197,7 @@ export function useSocket({ roomId, enabled, onIncomingMessage }: UseSocketOptio
     sendMessage,
     sendQuickAlert,
     sendLocation,
+    leaveRoom,
     purgeRoom,
     retryConnection,
   };
