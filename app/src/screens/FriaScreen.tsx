@@ -7,7 +7,8 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -238,7 +239,10 @@ export function FriaScreen({
 
       {/* ── CHAT TAB ── */}
       {tab === 'chat' && (
-        <View style={styles.flex}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -284,21 +288,6 @@ export function FriaScreen({
             </ScrollView>
           </View>
 
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="mensaje al grupo..."
-              placeholderTextColor={COLORS.txt3}
-              value={chatInput}
-              onChangeText={setChatInput}
-              onSubmitEditing={handleSendChat}
-              returnKeyType="send"
-            />
-            <TouchableOpacity style={styles.sendBtn} onPress={handleSendChat} activeOpacity={0.7}>
-              <Text style={styles.sendIcon}>➤</Text>
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.actionBar}>
             <TouchableOpacity style={styles.safeBtn} onPress={handleSafeExit} activeOpacity={0.7}>
               <Text style={styles.safeBtnTxt}>🚪 SALIR SEGURO</Text>
@@ -311,7 +300,23 @@ export function FriaScreen({
               <Text style={styles.emerBtnTxt}>{emerLabel}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder="mensaje al grupo..."
+              placeholderTextColor={COLORS.txt3}
+              value={chatInput}
+              onChangeText={setChatInput}
+              onFocus={() => setTimeout(() => chatListRef.current?.scrollToEnd({ animated: true }), 100)}
+              onSubmitEditing={handleSendChat}
+              returnKeyType="send"
+            />
+            <TouchableOpacity style={styles.sendBtn} onPress={handleSendChat} activeOpacity={0.7}>
+              <Text style={styles.sendIcon}>➤</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       )}
     </SafeAreaView>
   );
@@ -496,6 +501,3 @@ const styles = StyleSheet.create({
   },
   chatQuickRow: { flexDirection: 'row', gap: 8 },
 });
-
-// suppress unused warning for Dimensions in case of future use
-void Dimensions;

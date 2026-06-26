@@ -4,77 +4,84 @@ import { JoinScreen } from '../src/screens/JoinScreen';
 
 describe('JoinScreen', () => {
   const baseProps = {
+    connected: false,
     connectionError: null,
+    roomCode: null,
+    pendingAnswerCode: null,
+    onCreateRoom: jest.fn(),
+    onJoinRoomCode: jest.fn(),
+    onAcceptAnswerCode: jest.fn(),
+    onShareRoomCode: jest.fn(),
+    onShareAnswerCode: jest.fn(),
     onRetry: jest.fn(),
+    onJoin: jest.fn(),
+    onAbort: jest.fn(),
   };
 
-  it('shows a loading state when codename is null', () => {
-    const onJoin = jest.fn();
-    const onAbort = jest.fn();
+  it('shows the serverless empty state', () => {
     const { getByTestId, getAllByTestId, getByText } = render(
-      <JoinScreen {...baseProps} codename={null} connected={false} onJoin={onJoin} onAbort={onAbort} />
+      <JoinScreen {...baseProps} codename={null} />
     );
     expect(getByTestId('codename-loading')).toBeTruthy();
-    expect(getByText('PREPARANDO SESIÓN')).toBeTruthy();
+    expect(getByText('SIN SESION')).toBeTruthy();
     expect(getAllByTestId('calculator-mark')).toHaveLength(2);
-    expect(getByText('ESPERANDO…')).toBeTruthy();
+    expect(getByText('CREA O PEGA UN CODIGO')).toBeTruthy();
   });
 
-  it('displays the assigned codename once the server replies', () => {
-    const onJoin = jest.fn();
-    const onAbort = jest.fn();
-    const { getByTestId, getByText } = render(
-      <JoinScreen {...baseProps} codename="BRAVO-07" connected onJoin={onJoin} onAbort={onAbort} />
-    );
-    expect(getByTestId('assigned-codename').props.children).toBe('BRAVO-07');
-    expect(getByText('ENTRAR A LA RED')).toBeTruthy();
-  });
-
-  it('disables the enter button when not ready (no codename or not connected)', () => {
-    const onJoin = jest.fn();
-    const onAbort = jest.fn();
-    const { getByTestId } = render(
-      <JoinScreen {...baseProps} codename="BRAVO-07" connected={false} onJoin={onJoin} onAbort={onAbort} />
-    );
-    const btn = getByTestId('enter-button');
-    expect(btn.props.accessibilityState?.disabled || btn.props.disabled).toBe(true);
-  });
-
-  it('calls onJoin when the user presses enter (codename + connected)', () => {
-    const onJoin = jest.fn();
-    const onAbort = jest.fn();
+  it('creates a room', () => {
+    const onCreateRoom = jest.fn();
     const { getByText } = render(
-      <JoinScreen {...baseProps} codename="BRAVO-07" connected onJoin={onJoin} onAbort={onAbort} />
+      <JoinScreen {...baseProps} codename={null} onCreateRoom={onCreateRoom} />
     );
+    fireEvent.press(getByText('CREAR SALA'));
+    expect(onCreateRoom).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses a pasted invitation', () => {
+    const onJoinRoomCode = jest.fn();
+    const { getByTestId, getByText } = render(
+      <JoinScreen {...baseProps} codename={null} onJoinRoomCode={onJoinRoomCode} />
+    );
+    fireEvent.changeText(getByTestId('room-code-input'), 'FRIA:abc');
+    fireEvent.press(getByText('USAR INVITACION'));
+    expect(onJoinRoomCode).toHaveBeenCalledWith('FRIA:abc');
+  });
+
+  it('enables enter once a local codename exists', () => {
+    const onJoin = jest.fn();
+    const { getByTestId, getByText } = render(
+      <JoinScreen {...baseProps} codename="FRIA-1234" connected onJoin={onJoin} />
+    );
+    expect(getByTestId('assigned-codename').props.children).toBe('FRIA-1234');
     fireEvent.press(getByText('ENTRAR A LA RED'));
     expect(onJoin).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onAbort when the user taps "volver a la calculadora"', () => {
-    const onJoin = jest.fn();
+  it('shows share controls for invite and answer codes', () => {
+    const onShareRoomCode = jest.fn();
+    const onShareAnswerCode = jest.fn();
+    const { getByText } = render(
+      <JoinScreen
+        {...baseProps}
+        codename="FRIA-1234"
+        roomCode="FRIA:invite"
+        pendingAnswerCode="FRIA:answer"
+        onShareRoomCode={onShareRoomCode}
+        onShareAnswerCode={onShareAnswerCode}
+      />
+    );
+    fireEvent.press(getByText('COMPARTIR CODIGO'));
+    fireEvent.press(getByText('ENVIAR RESPUESTA'));
+    expect(onShareRoomCode).toHaveBeenCalledTimes(1);
+    expect(onShareAnswerCode).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onAbort when the user taps back', () => {
     const onAbort = jest.fn();
     const { getByText } = render(
-      <JoinScreen {...baseProps} codename="BRAVO-07" connected onJoin={onJoin} onAbort={onAbort} />
+      <JoinScreen {...baseProps} codename="FRIA-1234" onAbort={onAbort} />
     );
     fireEvent.press(getByText(/volver a la calculadora/i));
     expect(onAbort).toHaveBeenCalledTimes(1);
-    expect(onJoin).not.toHaveBeenCalled();
-  });
-
-  it('shows a retry action when Railway is unavailable', () => {
-    const onRetry = jest.fn();
-    const { getByTestId, getByText } = render(
-      <JoinScreen
-        codename={null}
-        connected={false}
-        connectionError="xhr poll error"
-        onRetry={onRetry}
-        onJoin={jest.fn()}
-        onAbort={jest.fn()}
-      />
-    );
-    expect(getByTestId('connection-error')).toBeTruthy();
-    fireEvent.press(getByText('REINTENTAR'));
-    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

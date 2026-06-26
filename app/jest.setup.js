@@ -20,21 +20,18 @@ jest.mock('expo-location', () => ({
   Accuracy: { Balanced: 3, High: 4, Low: 2 },
 }));
 
-jest.mock('expo-notifications', () => ({
-  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
-  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
-  getExpoPushTokenAsync: jest.fn().mockResolvedValue({ data: 'ExponentPushToken[mock]' }),
-  setNotificationHandler: jest.fn(),
-}));
-
-jest.mock('expo-device', () => ({
-  isDevice: true,
-}));
-
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn().mockResolvedValue(null),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('expo-notifications', () => ({
+  AndroidImportance: { DEFAULT: 'default' },
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
+  scheduleNotificationAsync: jest.fn().mockResolvedValue('notification-id'),
+  setNotificationChannelAsync: jest.fn().mockResolvedValue(undefined),
+  setNotificationHandler: jest.fn(),
 }));
 
 jest.mock('expo-navigation-bar', () => ({
@@ -48,14 +45,4 @@ jest.mock('expo-file-system', () => ({
 
 jest.mock('expo-document-picker', () => ({
   getDocumentAsync: jest.fn().mockResolvedValue({ type: 'cancel', assets: null }),
-}));
-
-jest.mock('socket.io-client', () => ({
-  io: jest.fn(() => ({
-    on: jest.fn(),
-    off: jest.fn(),
-    emit: jest.fn(),
-    disconnect: jest.fn(),
-    connected: false,
-  })),
 }));

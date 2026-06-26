@@ -8,10 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://web-production-c42a.up.railway.app",
-        "EXPO_PUBLIC_EAS_PROJECT_ID": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
-      }
+      "env": {}
     },
     "preview": {
       "distribution": "internal",
@@ -19,20 +16,14 @@
       "android": {
         "buildType": "apk"
       },
-      "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://web-production-c42a.up.railway.app",
-        "EXPO_PUBLIC_EAS_PROJECT_ID": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
-      }
+      "env": {}
     },
     "production": {
       "channel": "production",
       "android": {
         "buildType": "app-bundle"
       },
-      "env": {
-        "EXPO_PUBLIC_SERVER_URL": "https://web-production-c42a.up.railway.app",
-        "EXPO_PUBLIC_EAS_PROJECT_ID": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
-      }
+      "env": {}
     }
   },
   "submit": {

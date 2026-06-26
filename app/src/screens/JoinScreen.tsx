@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -15,6 +16,13 @@ interface Props {
   codename: string | null;
   connected: boolean;
   connectionError: string | null;
+  roomCode: string | null;
+  pendingAnswerCode: string | null;
+  onCreateRoom: () => void;
+  onJoinRoomCode: (code: string) => void;
+  onAcceptAnswerCode: (code: string) => void;
+  onShareRoomCode: () => void;
+  onShareAnswerCode: () => void;
   onRetry: () => void;
   onJoin: () => void;
   onAbort: () => void;
@@ -24,11 +32,20 @@ export function JoinScreen({
   codename,
   connected,
   connectionError,
+  roomCode,
+  pendingAnswerCode,
+  onCreateRoom,
+  onJoinRoomCode,
+  onAcceptAnswerCode,
+  onShareRoomCode,
+  onShareAnswerCode,
   onRetry,
   onJoin,
   onAbort,
 }: Props) {
-  // Vibrate softly when the codename arrives — confirms "you've been seen".
+  const [joinCode, setJoinCode] = useState('');
+  const [answerCode, setAnswerCode] = useState('');
+
   useEffect(() => {
     if (codename) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
@@ -37,31 +54,31 @@ export function JoinScreen({
     }
   }, [codename]);
 
-  const ready = Boolean(codename && connected);
+  const ready = Boolean(codename);
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.inner}>
         <View style={styles.logoSection}>
           <CalculatorMark compact />
-          <Text style={styles.logoTitle}>FRÍA</Text>
-          <Text style={styles.logoSub}>red cifrada · privada</Text>
+          <Text style={styles.logoTitle}>FRIA</Text>
+          <Text style={styles.logoSub}>red directa sin servidor</Text>
           <View style={styles.badgeRow}>
-            <View style={styles.badge}><Text style={styles.badgeTxt}>E2E</Text></View>
-            <View style={styles.badge}><Text style={styles.badgeTxt}>AES-256</Text></View>
+            <View style={styles.badge}><Text style={styles.badgeTxt}>P2P</Text></View>
+            <View style={styles.badge}><Text style={styles.badgeTxt}>WEBRTC</Text></View>
           </View>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>NOMBRE CLAVE DE SESIÓN</Text>
+          <Text style={styles.cardLabel}>SALA SIN API NI BASE DE DATOS</Text>
           {connectionError ? (
             <View style={styles.connectionError} testID="connection-error">
-              <Text style={styles.connectionErrorTitle}>SERVIDOR NO DISPONIBLE</Text>
+              <Text style={styles.connectionErrorTitle}>CODIGO NO CONECTO</Text>
               <Text style={styles.connectionErrorText}>
-                No se pudo conectar con Railway. Intenta nuevamente.
+                Revisa el codigo o prueba en la misma red.
               </Text>
               <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
-                <Text style={styles.retryBtnText}>REINTENTAR</Text>
+                <Text style={styles.retryBtnText}>NUEVA SALA</Text>
               </TouchableOpacity>
             </View>
           ) : codename ? (
@@ -79,17 +96,83 @@ export function JoinScreen({
                 />
               </View>
               <View style={styles.loadingCopy}>
-                <Text style={styles.codenameLoadingTitle}>PREPARANDO SESIÓN</Text>
+                <Text style={styles.codenameLoadingTitle}>SIN SESION</Text>
                 <Text style={styles.codenameLoadingTxt}>
-                  conectando · asignando clave
+                  crea una sala o pega una invitacion
                 </Text>
               </View>
             </View>
           )}
           <Text style={styles.hint}>
-            Se genera automáticamente al entrar. Nadie ve tu nombre real.
+            Los codigos se comparten por chat. FRIA no guarda salas ni mensajes.
           </Text>
         </View>
+
+        {!codename && (
+          <View style={styles.card}>
+            <TouchableOpacity style={styles.joinBtn} onPress={onCreateRoom} activeOpacity={0.8}>
+              <Text style={styles.joinBtnTxt}>CREAR SALA</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={styles.codeInput}
+              value={joinCode}
+              onChangeText={setJoinCode}
+              placeholder="pegar invitacion recibida"
+              placeholderTextColor={COLORS.txt3}
+              multiline
+              testID="room-code-input"
+            />
+            <TouchableOpacity
+              style={[styles.retryBtn, !joinCode.trim() && styles.joinBtnDisabled]}
+              onPress={() => onJoinRoomCode(joinCode)}
+              disabled={!joinCode.trim()}
+            >
+              <Text style={styles.retryBtnText}>USAR INVITACION</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {codename && !roomCode && !pendingAnswerCode && (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>SUMAR PERSONA</Text>
+            <TouchableOpacity style={styles.joinBtn} onPress={onCreateRoom} activeOpacity={0.8}>
+              <Text style={styles.joinBtnTxt}>CREAR OTRA INVITACION</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {roomCode && (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>INVITACION</Text>
+            <TouchableOpacity style={styles.joinBtn} onPress={onShareRoomCode} activeOpacity={0.8}>
+              <Text style={styles.joinBtnTxt}>COMPARTIR CODIGO</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={styles.codeInput}
+              value={answerCode}
+              onChangeText={setAnswerCode}
+              placeholder="pegar respuesta del invitado"
+              placeholderTextColor={COLORS.txt3}
+              multiline
+            />
+            <TouchableOpacity
+              style={[styles.retryBtn, !answerCode.trim() && styles.joinBtnDisabled]}
+              onPress={() => onAcceptAnswerCode(answerCode)}
+              disabled={!answerCode.trim()}
+            >
+              <Text style={styles.retryBtnText}>ACEPTAR RESPUESTA</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {pendingAnswerCode && (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>RESPUESTA LISTA</Text>
+            <TouchableOpacity style={styles.joinBtn} onPress={onShareAnswerCode} activeOpacity={0.8}>
+              <Text style={styles.joinBtnTxt}>ENVIAR RESPUESTA</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.joinBtn, !ready && styles.joinBtnDisabled]}
@@ -99,7 +182,7 @@ export function JoinScreen({
           testID="enter-button"
         >
           <Text style={styles.joinBtnTxt}>
-            {ready ? 'ENTRAR A LA RED' : 'ESPERANDO…'}
+            {ready ? 'ENTRAR A LA RED' : 'CREA O PEGA UN CODIGO'}
           </Text>
         </TouchableOpacity>
 
@@ -108,7 +191,7 @@ export function JoinScreen({
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          Los chats son temporales. Cuando todos salgan, se borran solos.
+          Sin servidor: si todos salen, la sala desaparece.
         </Text>
       </View>
     </SafeAreaView>
@@ -121,7 +204,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
-    gap: 24,
+    gap: 16,
   },
   logoSection: { alignItems: 'center', gap: 6 },
   logoTitle: {
@@ -146,8 +229,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 8,
+    padding: 14,
     gap: 10,
   },
   cardLabel: {
@@ -158,10 +241,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier New',
   },
   codename: {
-    fontSize: 32,
+    fontSize: 28,
     color: COLORS.txt,
     fontFamily: 'Courier New',
-    letterSpacing: 4,
+    letterSpacing: 3,
     fontWeight: '700',
     textAlign: 'center',
     paddingVertical: 8,
@@ -171,11 +254,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
-    paddingVertical: 18,
+    paddingVertical: 12,
   },
-  loadingVisual: {
-    position: 'relative',
-  },
+  loadingVisual: { position: 'relative' },
   loadingSpinner: {
     position: 'absolute',
     right: -4,
@@ -185,9 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: COLORS.surface,
   },
-  loadingCopy: {
-    gap: 5,
-  },
+  loadingCopy: { gap: 5, flex: 1 },
   codenameLoadingTitle: {
     fontSize: 12,
     color: COLORS.txt,
@@ -200,50 +279,41 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier New',
     letterSpacing: 0.7,
   },
-  connectionError: {
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  connectionErrorTitle: {
-    color: '#ef4444',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  connectionErrorText: {
-    color: COLORS.txt2,
-    fontSize: 12,
-    textAlign: 'center',
-  },
+  connectionError: { alignItems: 'center', gap: 10, paddingVertical: 8 },
+  connectionErrorTitle: { color: '#ef4444', fontSize: 13, fontWeight: '800', letterSpacing: 1 },
+  connectionErrorText: { color: COLORS.txt2, fontSize: 12, textAlign: 'center' },
   retryBtn: {
     borderWidth: 1,
     borderColor: COLORS.blue,
     borderRadius: 8,
     paddingHorizontal: 18,
     paddingVertical: 9,
+    alignItems: 'center',
   },
-  retryBtnText: {
-    color: COLORS.blue,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
+  retryBtnText: { color: COLORS.blue, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
   hint: { fontSize: 11, color: COLORS.txt3, textAlign: 'center' },
+  codeInput: {
+    minHeight: 72,
+    maxHeight: 120,
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.border2,
+    borderRadius: 8,
+    padding: 10,
+    color: COLORS.txt,
+    fontSize: 11,
+    fontFamily: 'Courier New',
+    textAlignVertical: 'top',
+  },
   joinBtn: {
     backgroundColor: COLORS.blue,
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   joinBtnDisabled: { opacity: 0.4 },
-  joinBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 1.5 },
-  abortBtn: { alignItems: 'center', paddingVertical: 8 },
+  joinBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 1.2 },
+  abortBtn: { alignItems: 'center', paddingVertical: 6 },
   abortTxt: { color: COLORS.txt3, fontSize: 11, fontFamily: 'Courier New', letterSpacing: 1 },
-  disclaimer: {
-    fontSize: 11,
-    color: COLORS.txt3,
-    textAlign: 'center',
-    lineHeight: 17,
-  },
+  disclaimer: { fontSize: 11, color: COLORS.txt3, textAlign: 'center', lineHeight: 17 },
 });

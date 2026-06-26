@@ -6,28 +6,24 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CalculatorScreen } from './src/screens/CalculatorScreen';
 import { FriaScreen } from './src/screens/FriaScreen';
 import { JoinScreen } from './src/screens/JoinScreen';
-import { useSocket } from './src/hooks/useSocket';
-import { configureForegroundPush } from './src/push';
+import { useWebRtcRoom } from './src/hooks/useWebRtcRoom';
+import { notifyIncomingCalculatorUpdate } from './src/notifications';
+import { Message } from './src/types';
 import { isCleanupDone, showCleanupHint } from './src/cleanup';
 import { ErrorBoundary } from './src/ErrorBoundary';
-
-const ROOM_ID = 'fria-001';
 
 type AppState = 'calculator' | 'join' | 'fria';
 
 export default function App() {
   const [state, setState] = useState<AppState>('calculator');
-  const [socketEnabled, setSocketEnabled] = useState(false);
 
   // Mount-time setup.
   useEffect(() => {
-    void configureForegroundPush();
     hideSystemBars();
   }, []);
 
-  const handleIncomingMessage = useCallback(() => {
-    // The hook already calls notifyIncoming(); this is a hook for future
-    // analytics or sound playing if needed.
+  const handleIncomingMessage = useCallback((msg: Message) => {
+    void notifyIncomingCalculatorUpdate(msg);
   }, []);
 
   const {
@@ -38,16 +34,22 @@ export default function App() {
     messages,
     peerLocations,
     kickedReason,
+    roomCode,
+    pendingAnswerCode,
+    createRoom,
+    joinRoomCode,
+    acceptAnswerCode,
+    shareRoomCode,
+    shareAnswerCode,
     sendMessage,
     sendQuickAlert,
     sendLocation,
     leaveRoom,
     purgeRoom,
     retryConnection,
-  } = useSocket({ roomId: ROOM_ID, enabled: socketEnabled, onIncomingMessage: handleIncomingMessage });
+  } = useWebRtcRoom(handleIncomingMessage);
 
   const handleUnlock = useCallback(() => {
-    setSocketEnabled(true);
     setState('join');
   }, []);
 
@@ -57,7 +59,6 @@ export default function App() {
 
   const handleExit = useCallback(() => {
     leaveRoom(() => {
-      setSocketEnabled(false);
       setState('calculator');
     });
   }, [leaveRoom]);
@@ -86,7 +87,6 @@ export default function App() {
   // calculator with the socket torn down.
   useEffect(() => {
     if (!kickedReason) return;
-    setSocketEnabled(false);
     setState('calculator');
   }, [kickedReason]);
 
@@ -104,6 +104,13 @@ export default function App() {
           codename={codename}
           connected={connected}
           connectionError={connectionError}
+          roomCode={roomCode}
+          pendingAnswerCode={pendingAnswerCode}
+          onCreateRoom={createRoom}
+          onJoinRoomCode={joinRoomCode}
+          onAcceptAnswerCode={acceptAnswerCode}
+          onShareRoomCode={shareRoomCode}
+          onShareAnswerCode={shareAnswerCode}
           onRetry={retryConnection}
           onJoin={handleJoin}
           onAbort={handleExit}

@@ -25,9 +25,11 @@
         "backgroundColor": "#08090b"
       },
       "package": "com.fria.app",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -42,13 +44,6 @@
         }
       ],
       [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#3b82f6"
-        }
-      ],
-      [
         "expo-build-properties",
         {
           "android": {
@@ -60,17 +55,6 @@
       ]
     ],
     "scheme": "fria",
-    "newArchEnabled": false,
-    "extra": {
-      "eas": {
-        "projectId": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
-      }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
-    }
+    "newArchEnabled": false
   }
 }
