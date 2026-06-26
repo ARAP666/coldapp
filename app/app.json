@@ -55,6 +55,11 @@
       ]
     ],
     "scheme": "fria",
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "6fd057ca-b2b5-4bdc-8edd-b43a337cfbe5"
+      }
+    }
   }
 }
